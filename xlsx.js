@@ -913,10 +913,21 @@ function unescapexml(text){
 	var s = text + '';
 	return s.replace(encregex, function($$) { return encodings[$$]; }).replace(coderegex,function(m,c) {return String.fromCharCode(parseInt(c,16));});
 }
-var decregex=/[&<>'"]/g, charegex = /[\u0000-\u0008\u000b-\u001f]/g;
+
+var decregex=/[&<>'"]/g,
+    charegex = /[\u0000-\u0008\u000b-\u001f]/g,
+    // surrogate pair replacement regex
+    // https://github.com/SheetJS/js-xlsx/issues/72#issuecomment-73269794
+    sprregex = /[\ud800-\udbff][\udc00-\udfff]/g;  // <- SP replacement regex
+function escapechr(chr) {
+    return "_x" + ("000"+chr.toString(16)).substr(-4) + "_";
+}
 function escapexml(text){
-	var s = text + '';
-	return s.replace(decregex, function(y) { return rencoding[y]; }).replace(charegex,function(s) { return "_x" + ("000"+s.charCodeAt(0).toString(16)).substr(-4) + "_";});
+    var s = text + '';
+    return s
+        .replace(decregex, function(y) { return rencoding[y]; })
+        .replace(charegex, function(s) { return escapechr(s.charCodeAt(0)); })
+        .replace(sprregex, function(s) { return escapechr(s.charCodeAt(0))+escapechr(s.charCodeAt(1)); });
 }
 
 function parsexmlbool(value, tag) {
